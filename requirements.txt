@@ -5,5 +5,6 @@ WTForms==2.1
 Werkzeug==0.14.1
 Flask_WTF==0.14.2
 Flask_Script==2.0.6
+pytorchyolo
 
 
