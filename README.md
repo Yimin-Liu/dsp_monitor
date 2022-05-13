@@ -1,5 +1,5 @@
 
-#基于Python的Flask框架的视频检索系统
+基于Python的Flask框架的视频检索系统
 ===========================
 ![](https://img.shields.io/badge/Python-3.6.3-green.svg) ![](https://img.shields.io/badge/Flask-0.12.2-green.svg) ![](https://img.shields.io/badge/Flask_MySQLdb-0.2.0-green.svg) ![](https://img.shields.io/badge/Flask_SQLAlchemy-2.3.2-green.svg) ![](https://img.shields.io/badge/WTForms-2.1-green.svg) ![](https://img.shields.io/badge/Werkzeug-0.14.1-green.svg) ![](https://img.shields.io/badge/Flask_WTF-0.14.2-green.svg) ![](https://img.shields.io/badge/Flask_Script-2.0.6-green.svg)  
     
