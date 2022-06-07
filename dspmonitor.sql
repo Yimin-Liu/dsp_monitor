@@ -1,21 +1,19 @@
 /*
- Navicat Premium Data Transfer
+Navicat MySQL Data Transfer
 
- Source Server         : localhost
- Source Server Type    : MySQL
- Source Server Version : 50731
- Source Host           : localhost:3306
- Source Schema         : dspmonitor
+Source Server         : local
+Source Server Version : 50731
+Source Host           : localhost:3306
+Source Database       : dspmonitor
 
- Target Server Type    : MySQL
- Target Server Version : 50731
- File Encoding         : 65001
+Target Server Type    : MYSQL
+Target Server Version : 50731
+File Encoding         : 65001
 
- Date: 13/05/2022 16:18:32
+Date: 2022-06-06 21:01:56
 */
 
-SET NAMES utf8mb4;
-SET FOREIGN_KEY_CHECKS = 0;
+SET FOREIGN_KEY_CHECKS=0;
 
 -- ----------------------------
 -- Table structure for admin
@@ -33,7 +31,13 @@ CREATE TABLE `admin` (
   KEY `role_id` (`role_id`),
   KEY `ix_admin_addtime` (`addtime`),
   CONSTRAINT `admin_ibfk_1` FOREIGN KEY (`role_id`) REFERENCES `role` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8;
+
+-- ----------------------------
+-- Records of admin
+-- ----------------------------
+INSERT INTO `admin` VALUES ('1', 'dxs', 'pbkdf2:sha256:50000$F1ZE4r9j$74f27183b391a85a3330dfaaccdbe15d564847b4b525247ce5ac5501050659d5', '0', '1', '2022-06-02 09:50:37');
+INSERT INTO `admin` VALUES ('6', 'admin', 'pbkdf2:sha256:50000$xtMlKfLe$3939dbb5ba67a01850315bd0e9f89114a1ca96856a0ec18946eeb9b175268587', '0', '1', '2022-06-06 21:00:10');
 
 -- ----------------------------
 -- Table structure for adminlog
@@ -48,7 +52,32 @@ CREATE TABLE `adminlog` (
   KEY `admin_id` (`admin_id`),
   KEY `ix_adminlog_addtime` (`addtime`),
   CONSTRAINT `adminlog_ibfk_1` FOREIGN KEY (`admin_id`) REFERENCES `admin` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8;
+
+-- ----------------------------
+-- Records of adminlog
+-- ----------------------------
+INSERT INTO `adminlog` VALUES ('1', '1', '127.0.0.1', '2022-06-02 09:52:05');
+INSERT INTO `adminlog` VALUES ('2', '1', '127.0.0.1', '2022-06-02 09:52:59');
+INSERT INTO `adminlog` VALUES ('3', '1', '127.0.0.1', '2022-06-02 15:43:33');
+INSERT INTO `adminlog` VALUES ('4', '1', '127.0.0.1', '2022-06-02 15:45:32');
+INSERT INTO `adminlog` VALUES ('5', '1', '127.0.0.1', '2022-06-06 09:45:04');
+INSERT INTO `adminlog` VALUES ('6', '1', '127.0.0.1', '2022-06-06 20:05:17');
+INSERT INTO `adminlog` VALUES ('7', '6', '127.0.0.1', '2022-06-06 21:01:15');
+
+-- ----------------------------
+-- Table structure for alembic_version
+-- ----------------------------
+DROP TABLE IF EXISTS `alembic_version`;
+CREATE TABLE `alembic_version` (
+  `version_num` varchar(32) NOT NULL,
+  PRIMARY KEY (`version_num`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ----------------------------
+-- Records of alembic_version
+-- ----------------------------
+INSERT INTO `alembic_version` VALUES ('69c79e79783a');
 
 -- ----------------------------
 -- Table structure for auth
@@ -64,6 +93,31 @@ CREATE TABLE `auth` (
   UNIQUE KEY `url` (`url`),
   KEY `ix_auth_addtime` (`addtime`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- ----------------------------
+-- Records of auth
+-- ----------------------------
+
+-- ----------------------------
+-- Table structure for cameras
+-- ----------------------------
+DROP TABLE IF EXISTS `cameras`;
+CREATE TABLE `cameras` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `camera_type` varchar(200) NOT NULL,
+  `ip_addr` varchar(200) NOT NULL,
+  `rstp_port` int(11) NOT NULL,
+  `camera_status` int(11) NOT NULL,
+  `addtime` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `ip_addr` (`ip_addr`)
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4;
+
+-- ----------------------------
+-- Records of cameras
+-- ----------------------------
+INSERT INTO `cameras` VALUES ('2', 'DS-2CD5A26EFWD-IZ', '114.213.214.44', '554', '0', '2022-06-06 15:25:49');
+INSERT INTO `cameras` VALUES ('3', 'DS-2CD3T47EWDV3-L', '114.213.214.241', '554', '0', '2022-06-06 20:49:38');
 
 -- ----------------------------
 -- Table structure for comment
@@ -82,6 +136,10 @@ CREATE TABLE `comment` (
   CONSTRAINT `comment_ibfk_1` FOREIGN KEY (`movie_id`) REFERENCES `movie` (`id`),
   CONSTRAINT `comment_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- ----------------------------
+-- Records of comment
+-- ----------------------------
 
 -- ----------------------------
 -- Table structure for movie
@@ -111,6 +169,10 @@ CREATE TABLE `movie` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- ----------------------------
+-- Records of movie
+-- ----------------------------
+
+-- ----------------------------
 -- Table structure for moviecol
 -- ----------------------------
 DROP TABLE IF EXISTS `moviecol`;
@@ -128,6 +190,10 @@ CREATE TABLE `moviecol` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- ----------------------------
+-- Records of moviecol
+-- ----------------------------
+
+-- ----------------------------
 -- Table structure for oplog
 -- ----------------------------
 DROP TABLE IF EXISTS `oplog`;
@@ -141,7 +207,15 @@ CREATE TABLE `oplog` (
   KEY `admin_id` (`admin_id`),
   KEY `ix_oplog_addtime` (`addtime`),
   CONSTRAINT `oplog_ibfk_1` FOREIGN KEY (`admin_id`) REFERENCES `admin` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8;
+
+-- ----------------------------
+-- Records of oplog
+-- ----------------------------
+INSERT INTO `oplog` VALUES ('1', '1', '127.0.0.1', '删除摄像头:[114.213.214.241]', '2022-06-06 15:28:30');
+INSERT INTO `oplog` VALUES ('2', '1', '127.0.0.1', '删除摄像头:[114.213.214.250]', '2022-06-06 20:12:14');
+INSERT INTO `oplog` VALUES ('3', '1', '127.0.0.1', '删除摄像头:[114.213.214.77]', '2022-06-06 20:22:55');
+INSERT INTO `oplog` VALUES ('4', '1', '127.0.0.1', '删除摄像头:[114.213.214.444]', '2022-06-06 20:49:24');
 
 -- ----------------------------
 -- Table structure for preview
@@ -159,6 +233,10 @@ CREATE TABLE `preview` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- ----------------------------
+-- Records of preview
+-- ----------------------------
+
+-- ----------------------------
 -- Table structure for role
 -- ----------------------------
 DROP TABLE IF EXISTS `role`;
@@ -170,7 +248,12 @@ CREATE TABLE `role` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `name` (`name`),
   KEY `ix_role_addtime` (`addtime`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8;
+
+-- ----------------------------
+-- Records of role
+-- ----------------------------
+INSERT INTO `role` VALUES ('1', '超级管理员', '', '2022-06-02 09:50:37');
 
 -- ----------------------------
 -- Table structure for tag
@@ -184,6 +267,10 @@ CREATE TABLE `tag` (
   UNIQUE KEY `name` (`name`),
   KEY `ix_tag_addtime` (`addtime`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- ----------------------------
+-- Records of tag
+-- ----------------------------
 
 -- ----------------------------
 -- Table structure for user
@@ -206,7 +293,12 @@ CREATE TABLE `user` (
   UNIQUE KEY `face` (`face`),
   UNIQUE KEY `uuid` (`uuid`),
   KEY `ix_user_addtime` (`addtime`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8;
+
+-- ----------------------------
+-- Records of user
+-- ----------------------------
+INSERT INTO `user` VALUES ('2', '阿尼亚今晚吃什么', 'pbkdf2:sha256:50000$LckvUjXz$d01a1a474c7a92f138cef4e99ba8193e46320cc7328ab1c14e507bdc32dd6a98', '978548365@qq.com', '13955810102', null, null, '2022-05-14 09:53:28', 'e132c12f063f4dd98a85e03af75e126e');
 
 -- ----------------------------
 -- Table structure for userlog
@@ -221,6 +313,11 @@ CREATE TABLE `userlog` (
   KEY `user_id` (`user_id`),
   KEY `ix_userlog_addtime` (`addtime`),
   CONSTRAINT `userlog_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8;
 
-SET FOREIGN_KEY_CHECKS = 1;
+-- ----------------------------
+-- Records of userlog
+-- ----------------------------
+INSERT INTO `userlog` VALUES ('3', '2', '127.0.0.1', '2022-05-14 09:53:44');
+INSERT INTO `userlog` VALUES ('4', '2', '127.0.0.1', '2022-05-14 09:58:15');
+INSERT INTO `userlog` VALUES ('5', '2', '127.0.0.1', '2022-05-30 09:47:07');

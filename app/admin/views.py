@@ -5,8 +5,10 @@ __author__ = 'Henry'
 
 from . import admin
 from flask import render_template, url_for, redirect, flash, session, request, abort
+from sqlalchemy import or_, and_
 from app.admin.forms import LoginForm, TagForm, MovieForm, PreviewForm, PwdForm, AuthForm, RoleForm, AdminForm
-from app.models import Admin, Tag, Movie, Preview, User, Comment, Moviecol, Oplog, Adminlog, Userlog, Auth, Role
+from app.cameras.forms import CamRegistForm
+from app.models import Admin, Tag, Movie, Preview, User, Comment, Moviecol, Oplog, Adminlog, Userlog, Auth, Role, Cameras
 from functools import wraps  # 装饰器(用于访问控制)
 from werkzeug.utils import secure_filename  # 将filename转化成安全的名称
 from app import db, app
@@ -69,7 +71,6 @@ def change_filename(filename):
 # 后台首页
 @admin.route('/')
 @admin_login_req
-@admin_auth
 def index():
     return render_template('admin/index.html')
 
@@ -94,7 +95,7 @@ def login():
         )
         db.session.add(adminlog)
         db.session.commit()
-        return redirect(request.args.get('next') or url_for('admin.tag_add'))
+        return redirect(request.args.get('next') or url_for('admin.index'))
 
     return render_template('admin/login.html', form=form)
 
@@ -128,7 +129,6 @@ def pwd():
 # 1.添加标签
 @admin.route('/tag/add/', methods=['GET', 'POST'])
 @admin_login_req
-@admin_auth
 def tag_add():
     form = TagForm()
     if form.validate_on_submit():
@@ -159,7 +159,6 @@ def tag_add():
 # 2.标签列表
 @admin.route('/tag/list/<int:page>/', methods=['GET'])
 @admin_login_req
-@admin_auth
 def tag_list(page=None):
     if page == None:
         page = 1
@@ -173,7 +172,6 @@ def tag_list(page=None):
 # 3.标签删除
 @admin.route('/tag/del/<int:id>/', methods=['GET'])
 @admin_login_req
-@admin_auth
 def tag_del(id=None):
     tag = Tag.query.filter_by(id=id).first_or_404()  # 查询失败直接返回404
     db.session.delete(tag)
@@ -194,7 +192,6 @@ def tag_del(id=None):
 # 4.编辑标签
 @admin.route('/tag/edit/<int:id>/', methods=['GET', 'POST'])
 @admin_login_req
-@admin_auth
 def tag_edit(id=None):
     form = TagForm()
     tag = Tag.query.get_or_404(id)
@@ -213,153 +210,95 @@ def tag_edit(id=None):
     return render_template('admin/tag_edit.html', form=form, tag=tag)
 
 
-# 电影管理
-# 1.添加电影
-@admin.route('/movie/add/', methods=['GET', 'POST'])
+# 摄像头管理
+# 1.添加摄像头
+@admin.route('/camera/add/', methods=['GET', 'POST'])
 @admin_login_req
-@admin_auth
-def movie_add():
-    form = MovieForm()
-    if form.validate_on_submit():
+def camera_regisit():
+    form = CamRegistForm()
+    if form.validate():
         data = form.data
-        movie = Movie.query.filter_by(title=data['title']).count()
-        if movie == 1:
-            flash('该电影已存在!', 'err')  # 'err':表示错误信息
-            return redirect(url_for('admin.movie_add'))
-        # 保存上传的电影视频及封面
-        file_url = secure_filename(form.url.data.filename)  # 生成上传的电影视频的文件名,并安全加密
-        file_logo = secure_filename(form.logo.data.filename)  # 生成上传的电影封面的文件名,并安全加密
-        if not os.path.exists(app.config['UP_DIR']):  # 没有就创建文件夹
-            os.makedirs(app.config['UP_DIR'])
-            # os.chmod(app.config['UP_DIR'], 'rw')  # 给文件夹可读可写的权限,这样才能保存文件呀
-            os.chmod(app.config['UP_DIR'], stat.S_IRWXU)  # 给文件夹可读可写的权限,这样才能保存文件呀 'rw'
-        # 修改为固定格式的文件名
-        url = change_filename(file_url)
-        logo = change_filename(file_logo)
-        # 保存文件
-        form.url.data.save(app.config['UP_DIR'] + url)
-        form.logo.data.save(app.config['UP_DIR'] + logo)
-        # 添加新电影入库
-        movie = Movie(
-            title=data['title'],
-            url=url,
-            info=data['info'],
-            logo=logo,
-            star=int(data['star']),
-            playnum=0,
-            commentnum=0,
-            tag_id=int(data['tag_id']),
-            area=data['area'],
-            release_time=data['release_time'],
-            length=data['length']
+        # 查询用户名是否存在
+        ip_addr = data['ip_addr']
+        cam = Cameras.query.filter_by(ip_addr=ip_addr).count()
+        if cam == 1:
+            flash('此IP地址已存在!', 'err')
+            return render_template('admin/camera_add.html', form=form)
+        cam = Cameras(
+            camera_type=data['camera_type'],
+            ip_addr=data['ip_addr'],
+            rstp_port=data['rstp_port'],
         )
-        db.session.add(movie)
+        db.session.add(cam)
         db.session.commit()
-        flash('添加新电影成功!', 'ok')  # 'ok':表示成功信息
-
-        # 将添加电影操作保存到操作日志列表
-        oplog = Oplog(
-            admin_id=session['admin_id'],
-            ip=request.remote_addr,
-            reason='添加电影:《' + movie.title + '》'
-        )
-        db.session.add(oplog)
-        db.session.commit()
-        return redirect(url_for('admin.movie_add'))
-
-    return render_template('admin/movie_add.html', form=form)
+        flash('恭喜您,该摄像机注册成功!', 'ok')
+        return redirect(url_for('admin.cam_list', page=1))
+    return render_template('admin/camera_add.html', form=form)
 
 
-# 2.电影列表
-@admin.route('/movie/list/<int:page>/', methods=['GET'])
+# 2.摄像头列表
+@admin.route('/camera/list/<int:page>/', methods=['GET'])
 @admin_login_req
-@admin_auth
-def movie_list(page=None):
+def cam_list(page=None):
     if page == None:
         page = 1
     # 按标签添加的时间排序显示
-    page_data = Movie.query.join(Tag).filter(  # .join(Tag):因为要通过标签id查询标签名称;filter():关联连个模型
-        Tag.id == Movie.tag_id
-    ).order_by(
-        Movie.addtime.desc()
+    page_data = Cameras.query.order_by(
+        Cameras.id.asc()
     ).paginate(page=page, per_page=10)  # (传入要显示的页码,每页显示的标签个数)
-    return render_template('admin/movie_list.html', page_data=page_data)
+    return render_template('admin/camera_list.html', page_data=page_data)
 
 
-# 3.删除电影
-@admin.route('/movie/del/<int:id>/', methods=['GET', 'POST'])
+# 3.删除摄像头
+@admin.route('/camera/del/<int:id>/', methods=['GET', 'POST'])
 @admin_login_req
-@admin_auth
-def movie_del(id=None):
-    movie = Movie.query.filter_by(id=id).first_or_404()  # 查询失败直接返回404
-    db.session.delete(movie)
+def cam_del(id=None):
+    cam = Cameras.query.filter_by(id=id).first_or_404()  # 查询失败直接返回404
+    db.session.delete(cam)
     db.session.commit()
-    flash('删除电影成功!', 'ok')
+    flash('删除摄像头成功!', 'ok')
 
     # 将删除电影操作保存到操作日志列表
     oplog = Oplog(
         admin_id=session['admin_id'],
         ip=request.remote_addr,
-        reason='删除电影:《' + movie.title + '》'
+        reason='删除摄像头:[' + cam.ip_addr + ']'
     )
     db.session.add(oplog)
     db.session.commit()
-    return redirect(url_for('admin.movie_list', page=1))
+    return redirect(url_for('admin.cam_list', page=1))
 
 
-# 4.编辑电影
-@admin.route('/movie/edit/<int:id>/', methods=['GET', 'POST'])
+# 4.编辑摄像头
+@admin.route('/camera/edit/<int:id>/', methods=['GET', 'POST'])
 @admin_login_req
-@admin_auth
-def movie_edit(id=None):
-    form = MovieForm()
-    form.url.validators = []
-    form.logo.validators = []
-    movie = Movie.query.get_or_404(id)
+def cam_edit(id=None):
+    form = CamRegistForm()
+    cam = Cameras.query.get_or_404(id)
     if request.method == 'GET':
         # 这三个用value传不进去,所以用这种方法
-        form.info.data = movie.info
-        form.tag_id.data = movie.tag_id
-        form.star.data = movie.star
+        form.camera_type.data = cam.camera_type
+        form.ip_addr.data = cam.ip_addr
+        form.rstp_port.data = cam.rstp_port
 
-    # 修改电影信息
+    # 修改摄像头信息
     if form.validate_on_submit():
         data = form.data
-        # 如果片名以存在,则修改失败
-        movie_count = Movie.query.filter_by(title=data['title']).count()
-        if movie_count == 1 and movie.title != data['title']:
-            flash('片名以存在,请重新输入!', 'err')
-            return redirect(url_for('admin.movie_edit', id=id))
-
-        # 修改电影的视频及封面
-        if not os.path.exists(app.config['UP_DIR']):  # 没有就创建文件夹
-            os.makedirs(app.config['UP_DIR'])
-            # os.chmod(app.config['UP_DIR'], 'rw')  # 给文件夹可读可写的权限,这样才能保存文件呀
-            os.chmod(app.config['UP_DIR'], stat.S_IRWXU)  # 给文件夹可读可写的权限,这样才能保存文件呀 'rw'
-        # 如果URL不为空,即为修改了视频地址,要重新保存
-        if form.url.data != '':
-            file_url = secure_filename(form.url.data.filename)  # 生成上传的电影视频的文件名,并安全加密
-            movie.url = change_filename(file_url)
-            form.url.data.save(app.config['UP_DIR'] + movie.url)
-        # 如果logo不为空,即为修改了视频封面地址,要重新保存
-        if form.logo.data != '':
-            file_logo = secure_filename(form.logo.data.filename)  # 生成上传的电影封面的文件名,并安全加密
-            movie.logo = change_filename(file_logo)
-            form.logo.data.save(app.config['UP_DIR'] + movie.logo)
-
-        movie.info = data['info']
-        movie.star = data['star']
-        movie.tag_id = data['tag_id']
-        movie.title = data['title']
-        movie.area = data['area']
-        movie.length = data['length']
-        movie.release_time = data['release_time']
-        db.session.add(movie)
+        # 如果该ip地址存在,则修改失败
+        cam_count = Cameras.query.filter(and_(Cameras.ip_addr == data['ip_addr'], Cameras.id != id)).count()
+        if cam_count >= 1:
+            flash('该ip地址已存在,请重新输入!', 'err')
+            return redirect(url_for('admin.cam_edit', id=id))
+        cam.camera_type = data['camera_type']
+        cam.ip_addr = data['ip_addr']
+        cam.rstp_port = data['rstp_port']
+        cam.addtime = datetime.datetime.now()
+        db.session.add(cam)
         db.session.commit()
 
-        flash('修改电影成功!', 'ok')  # 'ok':表示成功信息
-        return redirect(url_for('admin.movie_edit', id=movie.id))
-    return render_template('admin/movie_edit.html', form=form, movie=movie)  # 传movie是为了赋予初值,因为是修改电影,标签上面会显示之前的电影信息
+        flash('修改摄像头信息成功!', 'ok')  # 'ok':表示成功信息
+        return redirect(url_for('admin.cam_list', page=1))
+    return render_template('admin/camera_edit.html', form=form, cam=cam)  # 传movie是为了赋予初值,因为是修改电影,标签上面会显示之前的电影信息
 
 
 # 上映预告管理
@@ -407,7 +346,6 @@ def preview_add():
 # 2.预告列表
 @admin.route('/preview/list/<int:page>/', methods=['GET', 'POST'])
 @admin_login_req
-@admin_auth
 def preview_list(page=None):
     if page == None:
         page = 1
@@ -421,7 +359,6 @@ def preview_list(page=None):
 # 3.删除预告
 @admin.route('/preview/del/<int:id>/', methods=['GET', 'POST'])
 @admin_login_req
-@admin_auth
 def preview_del(id=None):
     preview = Preview.query.filter_by(id=id).first_or_404()
     db.session.delete(preview)
@@ -442,7 +379,6 @@ def preview_del(id=None):
 # 4.编辑预告
 @admin.route('/preview/edit/<int:id>/', methods=['GET', 'POST'])
 @admin_login_req
-@admin_auth
 def preview_edit(id=None):
     form = PreviewForm()
     form.logo.validators = []
@@ -481,7 +417,6 @@ def preview_edit(id=None):
 # 1.会员列表
 @admin.route('/user/list/<int:page>/', methods=['GET', 'POST'])
 @admin_login_req
-@admin_auth
 def user_list(page=None):
     if page == None:
         page = 1
@@ -495,7 +430,6 @@ def user_list(page=None):
 # 2.查看会员详情
 @admin.route('/user/view/<int:id>/', methods=['GET', 'POST'])
 @admin_login_req
-@admin_auth
 def user_view(id=None):
     user = User.query.get_or_404(id)
     return render_template('admin/user_view.html', user=user)
@@ -506,7 +440,6 @@ def user_view(id=None):
 # 清空表后使之ID从1开始递增:ALTER TABLE comment auto_increment=1;
 @admin.route('/user/del/<int:id>/', methods=['GET', 'POST'])
 @admin_login_req
-@admin_auth
 def user_del(id=None):
     user = User.query.filter_by(id=id).first_or_404()
     db.session.delete(user)
@@ -528,7 +461,6 @@ def user_del(id=None):
 # 命令行插入评论操作:insert into comment(movie_id,user_id,content,addtime) values(1,2,'哈哈,真好看!',now());
 @admin.route('/comment/list/<int:page>/', methods=['GET'])
 @admin_login_req
-@admin_auth
 def comment_list(page=None):
     if page == None:
         page = 1
@@ -548,7 +480,6 @@ def comment_list(page=None):
 # 删除评论
 @admin.route('/comment/del/<int:id>/', methods=['GET'])
 @admin_login_req
-@admin_auth
 def comment_del(id=None):
     comment = Comment.query.filter_by(id=id).first_or_404()
     db.session.delete(comment)
@@ -570,7 +501,6 @@ def comment_del(id=None):
 # 命令行插入收藏操作:insert into moviecol(movie_id,user_id,addtime) values(1,2,now());
 @admin.route('/moviecol/list/<int:page>/', methods=['GET'])
 @admin_login_req
-@admin_auth
 def moviecol_list(page=None):
     if page == None:
         page = 1
@@ -590,7 +520,6 @@ def moviecol_list(page=None):
 # 删除收藏
 @admin.route('/moviecol/del/<int:id>/', methods=['GET'])
 @admin_login_req
-@admin_auth
 def moviecol_del(id=None):
     moviecol = Moviecol.query.filter_by(id=id).first_or_404()
     db.session.delete(moviecol)
@@ -604,7 +533,6 @@ def moviecol_del(id=None):
 # 1.管理员操作日志列表
 @admin.route('/oplog/list/<int:page>/', methods=['GET'])
 @admin_login_req
-@admin_auth
 def oplog_list(page=None):
     if page == None:
         page = 1
@@ -622,7 +550,6 @@ def oplog_list(page=None):
 # 命令行插管理员登录日志操作:insert into adminlog(admin_id,ip,addtime) values(1,'192.108.0.1',now());
 @admin.route('/adminloginlog/list/<int:page>/', methods=['GET'])
 @admin_login_req
-@admin_auth
 def adminloginlog_list(page=None):
     if page == None:
         page = 1
@@ -640,7 +567,6 @@ def adminloginlog_list(page=None):
 # 命令行插会员登录日志操作:insert into userlog(user_id,ip,addtime) values(2,'192.108.0.1',now());
 @admin.route('/userloginlog/list/<int:page>/', methods=['GET'])
 @admin_login_req
-@admin_auth
 def userloginlog_list(page=None):
     if page == None:
         page = 1
@@ -695,7 +621,6 @@ def auth_list(page=None):
 # 3.删除权限
 @admin.route('/auth/del/<int:id>', methods=['GET'])
 @admin_login_req
-@admin_auth
 def auth_del(id=None):
     auth = Auth.query.filter_by(id=id).first_or_404()
     db.session.delete(auth)
@@ -707,7 +632,6 @@ def auth_del(id=None):
 # 4. 编辑权限
 @admin.route('/auth/edit/<int:id>/', methods=['GET', 'POST'])
 @admin_login_req
-# @admin_auth
 def auth_edit(id=None):
     form = AuthForm()
     auth = Auth.query.get_or_404(id)
@@ -772,7 +696,6 @@ def role_list(page=None):
 # 3.删除角色
 @admin.route('/role/del/<int:id>', methods=['GET'])
 @admin_login_req
-@admin_auth
 def role_del(id=None):
     role = Role.query.filter_by(id=id).first_or_404()
     db.session.delete(role)
@@ -812,7 +735,7 @@ def role_edit(id=None):
 
 # 管理员管理
 # 1.添加管理员
-@admin.route('/admin/add/', methods=['GET', 'POST'])
+@admin.route('/add/', methods=['GET', 'POST'])
 @admin_login_req
 @admin_auth
 def admin_add():
@@ -828,7 +751,7 @@ def admin_add():
             name=data['name'],
             pwd=generate_password_hash(data['pwd']),
             role_id=data['role_id'],
-            is_super=1  # 普通管理员(0:超级管理员)
+            is_super=0  # 普通管理员(0:超级管理员)
         )
         db.session.add(admin)
         db.session.commit()
@@ -852,3 +775,18 @@ def admin_list(page=None):
         Admin.addtime.desc()
     ).paginate(page=page, per_page=10)
     return render_template('admin/admin_list.html', page_data=page_data)
+
+
+
+
+# @admin.route('/addvip/', methods=['GET', 'POST'])
+# def svip_add():
+#     admin = Admin(
+#         name='admin',
+#         pwd=generate_password_hash('123456'),
+#         is_super=0,  # 是超级管理员
+#         role_id=1
+#     )
+#     db.session.add(admin)
+#     db.session.commit()
+#     return 'success!'

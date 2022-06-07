@@ -45,11 +45,12 @@ class RegistForm(FlaskForm):
             # 'required': 'required'
         }
     )
+    # 修改了手机号码正则表达式
     phone = StringField(
         label='手机',
         validators=[
             DataRequired('请输入手机号!'),
-            Regexp('1[3458]\\d{9}', message='手机格式不正确!')  # Regexp正则模块验证手机格式(第一位:1;第二位:3或4或5或8;加上后面9位数)
+            Regexp('1[3-9]\\d{9}', message='手机格式不正确!')  # Regexp正则模块验证手机格式(第一位:1;第二位:3或4或5或8;加上后面9位数)
         ],
         description='手机',
         render_kw={
