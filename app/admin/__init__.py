@@ -5,7 +5,7 @@ __author__ = 'Henry'
 
 from flask import Blueprint
 
-admin = Blueprint('admin',__name__)
+admin = Blueprint('admin', __name__, url_prefix="/admin")
 
 import app.admin.views
 

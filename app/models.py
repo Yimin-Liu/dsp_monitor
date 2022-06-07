@@ -192,10 +192,21 @@ class Oplog(db.Model):
         return '<Oplog %r>' % self.id
 
 
+# 多摄像机注册
+class Cameras(db.Model):
+    __tablename__ = 'cameras'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)  # 摄像机编号
+    camera_type = db.Column(db.String(200), nullable=False) # csv中的设备类型：DS-2CD5A26EFWD-IZ
+    ip_addr = db.Column(db.String(200), nullable=False, unique=True)
+    rstp_port = db.Column(db.Integer, nullable=False, default=554)
+    camera_status = db.Column(db.Integer, nullable=False, default=0) # 0代表连接不成功，1代表连接成功
+    addtime = db.Column(db.DateTime, default=datetime.now)  # 操作时间
+
+
 '''
 if __name__ == '__main__':
     #1.创建出所有数据模型(第一次运行后就不用了,可以注释掉)
-    #db.create_all()
+    # db.create_all()
 
     
     #2.创建一个超级管理员角色:

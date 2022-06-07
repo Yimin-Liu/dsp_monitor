@@ -24,11 +24,10 @@ import numpy as np
 import torch
 
 model = models.load_model(
-    "/Users/liuyimin/workSpace/PyTorch-YOLOv3/config/yolov3-tiny.cfg",
-    "/Users/liuyimin/workSpace/PyTorch-YOLOv3/weights/yolov3-tiny.weights")
+    "../../PyTorch-YOLOv3/config/yolov3-tiny.cfg",
+    "../../PyTorch-YOLOv3/weights/yolov3-tiny.weights")
 
-name_path = "/Users/liuyimin/workSpace/PyTorch-YOLOv3/data/coco.names"
-
+name_path = "../../PyTorch-YOLOv3/data/coco.names"
 
 # 修改上传的文件名称
 def change_filename(filename):
@@ -127,6 +126,7 @@ def index(page=None):
 @home.route('/login/', methods=['GET', 'POST'])
 def login():
     form = LoginForm()
+    # 判断验证器是否验证正确
     if form.validate_on_submit():
         data = form.data
         user = User.query.filter_by(name=data['name']).first()
@@ -421,44 +421,3 @@ def play(id=None, page=None):
     return render_template('home/play.html', movie=movie, tag=tag, form=form, page_data=page_data)
 
 
-# rtsp = 'rtsp://admin:admin@192.168.3.160:554/1/1'
-# camera = cv2.VideoCapture(rtsp)
-# camera = cv2.VideoCapture(0)
-
-
-def gen_frames():
-    while True:
-        camera = cv2.VideoCapture(0)
-        success, frame = camera.read()
-        if not success:
-            break
-        else:
-            img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            # Runs the YOLO model on the image
-            boxes = detect.detect_image(model, img)
-            detections = torch.from_numpy(boxes)
-            class_names = load_classes(name_path)
-            COLORS = np.random.uniform(0, 255, size=(len(class_names), 3))
-
-            for x1, y1, x2, y2, conf, cls_pred in detections:
-                label = str(class_names[int(cls_pred)])
-                color = COLORS[int(cls_pred)]
-                frame = cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)),
-                                      color, 2)
-                frame = cv2.putText(frame, label, (int(x1) - 10, int(y1) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
-            ret, buffer = cv2.imencode('.jpg', frame)
-            frame = buffer.tobytes()
-
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-
-
-@app.route('/camera1')
-def index():
-    data = [0, 1]
-    return render_template('home/indexvedio.html', cameras=data)
-
-
-@app.route('/video_feed')
-def video_feed():
-    return Response(gen_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
